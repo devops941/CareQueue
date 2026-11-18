@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: carequeue-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - carequeue-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: carequeue
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: carequeue-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/app:/app/app
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: carequeue-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  carequeue-data:
